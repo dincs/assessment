@@ -1,0 +1,9 @@
+.git
+vendor
+node_modules
+storage/*.key
+.env
+npm-debug.log
+yarn-error.log
+.idea
+.vscode
