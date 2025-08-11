@@ -92,7 +92,7 @@
   checkAll?.addEventListener('change', e => {
     document.querySelectorAll('.rowCheck').forEach(cb => cb.checked = e.target.checked);
   });
-
+ 
   function submitBulkDelete() {
     const ids = Array.from(document.querySelectorAll('.rowCheck:checked')).map(cb => cb.value);
     if (ids.length === 0) {
