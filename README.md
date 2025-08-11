@@ -1,6 +1,6 @@
 # Laravel Products API
 
-A Laravel 12 application that provides a **Products Management API** with authentication, filtering + pagination, and Excel export functionality.  
+A Laravel 12 application that provides a **Products Management API** with authentication, role-based access control (admin/non-admin), filtering + pagination, and Excel export functionality.  
 Includes authentication (login, logout) and a full PHPUnit test suite.
 
 ---
@@ -25,6 +25,7 @@ Includes authentication (login, logout) and a full PHPUnit test suite.
 - PHP 8.3+
 - Composer
 - MySQL 8+ (or SQLite for testing)
+- Node.js 20+ (if building front-end assets)
 - Git
 
 ---
@@ -45,7 +46,25 @@ cp .env.example .env
 # Generate application key
 php artisan key:generate
 
-# Configure your .env for DB connection
+# Configure your .env for DB connection and Swagger
+# Example values:
+# Database
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=laravel_api
+DB_USERNAME=root
+DB_PASSWORD=
+
+# Swagger constants
+L5_SWAGGER_CONST_HOST=http://localhost:8000
+L5_SWAGGER_CONST_FRONTEND_URL=http://localhost:3000
+L5_SWAGGER_CONST_API_VERSION=v1
+
+# Sanctum
+SANCTUM_STATEFUL_DOMAINS=localhost
+
+# Run migrations & seeders
 php artisan migrate --seed
 
 # Link storage (if needed)
@@ -102,16 +121,6 @@ Base path: `/api`
 ### Export `/products/export`
 - Accepts same filters as `/products`
 - Returns an Excel file (`products.xlsx`)
-
----
-
-## Email Verification
-
-| Method | Path                                      | Description                              |
-|--------|-------------------------------------------|------------------------------------------|
-| GET    | `/verify-email`                           | Verification notice page (204 for API)   |
-| GET    | `/verify-email/{id}/{hash}` (signed)      | Marks email as verified                  |
-| POST   | `/email/verification-notification`        | Resends verification email               |
 
 ---
 
@@ -217,6 +226,10 @@ php artisan optimize:clear
    APP_ENV=production
    APP_DEBUG=false
    APP_URL=https://yourdomain.com
+   L5_SWAGGER_CONST_HOST=https://yourdomain.com
+   L5_SWAGGER_CONST_FRONTEND_URL=https://frontend.yourdomain.com
+   L5_SWAGGER_CONST_API_VERSION=v1
+   SANCTUM_STATEFUL_DOMAINS=yourdomain.com
    ```
 2. Run:
    ```bash
