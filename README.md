@@ -1,7 +1,7 @@
 # Laravel Products API
 
 A Laravel 12 application that provides a **Products Management API** with authentication, role-based access control (admin/non-admin), filtering + pagination, and Excel export functionality.  
-Includes authentication (login, logout, email verification) and a full PHPUnit test suite.
+Includes authentication (login, logout) and a full PHPUnit test suite.
 
 ---
 
