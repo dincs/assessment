@@ -12,12 +12,13 @@ Includes authentication (login, logout) and a full PHPUnit test suite.
 4. Authentication
 5. API Endpoints
 6. Seeder Accounts
-7. Testing & Development
-8. Assumptions & Design Choices
-9. Tech Stack
-10. Production Deployment
-11. Future Enhancements
-12. License
+7. Swagger Documentation
+8. Testing & Development
+9. Assumptions & Design Choices
+10. Tech Stack
+11. Production Deployment
+12. Future Enhancements
+13. License
 
 ---
 
@@ -142,12 +143,38 @@ Password: password
 
 ---
 
-## Testing & Development
+## Swagger Documentation
 
-### Run All Tests
-```bash
-php artisan test
+Once the app is running, open **Swagger UI** at:
+
 ```
+http://localhost:8000/api/documentation
+```
+
+Make sure the following `.env` values are set for Swagger to work correctly:
+
+```env
+L5_SWAGGER_CONST_HOST=http://localhost:8000
+L5_SWAGGER_CONST_FRONTEND_URL=http://localhost:3000
+L5_SWAGGER_CONST_API_VERSION=v1
+SANCTUM_STATEFUL_DOMAINS=localhost
+```
+
+### Authorizing in Swagger
+1. Generate a Bearer token using Tinker:
+   ```bash
+   php artisan tinker
+   >>> $user = App\Models\User::where('email', 'admin@example.com')->first();
+   >>> $user->createToken('API Token')->plainTextToken;
+   ```
+2. In Swagger UI, click **Authorize** and paste:
+   ```
+   Bearer <your-token-here>
+   ```
+
+---
+
+## Testing & Development
 
 ### Run Only Product API Tests
 ```bash
@@ -167,20 +194,6 @@ php artisan migrate:fresh --seed
 Without seeders:
 ```bash
 php artisan migrate:fresh
-```
-
-### Get a Bearer Token for Swagger/Postman
-```bash
-php artisan tinker
-```
-```php
-$user = App\Models\User::where('email', 'admin@example.com')->first();
-$token = $user->createToken('API Token')->plainTextToken;
-$token;
-```
-Copy the token and use it in Swagger/Postman:
-```
-Authorization: Bearer <your-token-here>
 ```
 
 ### Useful Artisan Commands
