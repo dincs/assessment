@@ -1,24 +1,24 @@
 # Laravel Products API
 
-A Laravel 12 application that provides a **Products Management API** with authentication, role-based access control (admin/non-admin), filtering + pagination, and Excel export functionality.  
-Includes authentication (login, logout) and a full PHPUnit test suite.
+A Laravel 12 application that provides a **Products Management API** with authentication, role-based access control (admin/non-admin), filtering + pagination, and Excel export functionality. Includes authentication (login, logout) and a full PHPUnit test suite.
 
 ---
 
 ## 📌 Table of Contents
 1. Requirements
-2. Setup Instructions
-3. Running the Application
-4. Authentication
-5. API Endpoints
-6. Seeder Accounts
-7. Swagger Documentation
-8. Testing & Development
-9. Assumptions & Design Choices
-10. Tech Stack
-11. Production Deployment
-12. Future Enhancements
-13. License
+2. Local Setup Instructions
+3. Docker Setup
+4. Running the Application
+5. Authentication
+6. API Endpoints
+7. Seeder Accounts
+8. Swagger Documentation
+9. Testing & Development
+10. Assumptions & Design Choices
+11. Tech Stack
+12. Production Deployment
+13. Future Enhancements
+14. License
 
 ---
 
@@ -28,50 +28,19 @@ Includes authentication (login, logout) and a full PHPUnit test suite.
 - MySQL 8+ (or SQLite for testing)
 - Node.js 20+ (if building front-end assets)
 - Git
+- Docker (for containerized setup)
 
 ---
 
-## Setup Instructions
-
+## Local Setup Instructions
 ```bash
-# Clone repository
 git clone <your-repo-url>
 cd <your-project-folder>
-
-# Install dependencies
 composer install
-
-# Copy environment file
 cp .env.example .env
-
-# Generate application key
 php artisan key:generate
-
-# Configure your .env for DB connection and Swagger
-# Example values:
-# Database
-DB_CONNECTION=mysql
-DB_HOST=127.0.0.1
-DB_PORT=3306
-DB_DATABASE=laravel_api
-DB_USERNAME=root
-DB_PASSWORD=
-
-# Swagger constants
-L5_SWAGGER_CONST_HOST=http://localhost:8000
-L5_SWAGGER_CONST_FRONTEND_URL=http://localhost:3000
-L5_SWAGGER_CONST_API_VERSION=v1
-
-# Sanctum
-SANCTUM_STATEFUL_DOMAINS=localhost
-
-# Run migrations & seeders
 php artisan migrate --seed
-
-# Link storage (if needed)
 php artisan storage:link
-
-# (Optional) Build front-end assets
 npm install && npm run build
 ```
 
@@ -84,6 +53,124 @@ php artisan serve
 ```
 
 Default URL: **http://localhost:8000**
+
+---
+
+## Docker Setup
+
+### Project Structure
+```
+my-laravel-app/
+├── app/
+├── bootstrap/
+├── config/
+├── public/
+├── routes/
+├── storage/
+├── artisan
+├── composer.json
+├── Dockerfile
+├── docker-compose.yml
+└── .env.docker
+```
+
+### 1) `.env.docker`
+```env
+APP_NAME=Laravel
+APP_ENV=local
+APP_KEY=
+APP_DEBUG=true
+APP_URL=http://localhost:8080
+
+DB_CONNECTION=mysql
+DB_HOST=mysql
+DB_PORT=3306
+DB_DATABASE=appdb
+DB_USERNAME=appuser
+DB_PASSWORD=apppass
+
+SESSION_DRIVER=file
+CACHE_STORE=file
+QUEUE_CONNECTION=sync
+```
+
+### 2) Dockerfile
+```dockerfile
+FROM php:8.2-apache
+RUN apt-get update && apt-get install -y libzip-dev zip libpng-dev libjpeg-dev libfreetype6-dev && rm -rf /var/lib/apt/lists/*
+RUN a2enmod rewrite
+RUN docker-php-ext-configure gd --with-freetype --with-jpeg  && docker-php-ext-install pdo_mysql zip gd
+ENV APACHE_DOCUMENT_ROOT=/var/www/html/public
+RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/sites-available/*.conf  && sed -ri -e 's!/var/www/!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/apache2.conf /etc/apache2/conf-available/*.conf
+COPY . /var/www/html
+COPY .env.docker /var/www/html/.env
+RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
+WORKDIR /var/www/html
+RUN composer install --no-interaction --prefer-dist
+RUN chown -R www-data:www-data storage bootstrap/cache
+```
+
+### 3) docker-compose.yml
+```yaml
+services:
+  app:
+    build: .
+    container_name: myapp
+    ports:
+      - "8080:80"
+    depends_on:
+      mysql:
+        condition: service_healthy
+  mysql:
+    image: mysql:8.4
+    container_name: mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpass
+      MYSQL_DATABASE: appdb
+      MYSQL_USER: appuser
+      MYSQL_PASSWORD: apppass
+    ports:
+      - "3307:3306"
+    volumes:
+      - dbdata:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-prootpass"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+volumes:
+  dbdata:
+```
+
+### 4) Build & Start
+```bash
+docker compose down -v
+docker compose up -d --build
+docker compose exec app sh -lc "php artisan key:generate && php artisan storage:link && php artisan migrate --force && php artisan db:seed || true"
+docker compose exec app sh -lc "php artisan route:clear && php artisan route:cache && php artisan config:clear && php artisan l5-swagger:generate"
+
+```
+### 5) Getting a Bearer Token for Swagger Authorization
+```bash
+docker compose exec app php artisan tinker
+>>> $user = App\Models\User::where('email', 'admin@example.com')->first();
+>>> $token = $user->createToken('API Token')->plainTextToken;
+>>> $token
+```
+Copy this token and in Swagger UI click **Authorize** → paste:
+```
+Bearer <your-token>
+```
+
+```
+App: http://localhost:8080  
+MySQL: 127.0.0.1:3307 (DB: appdb / User: appuser / Pass: apppass)
+
+---
+
+## Running the Application
+- Local: `php artisan serve`
+- Docker: `docker compose up -d`
 
 ---
 
@@ -148,10 +235,11 @@ Password: password
 Once the app is running, open **Swagger UI** at:
 
 ```
-http://localhost:8000/api/documentation
+- Local: http://localhost:8000/api/documentation
+- Docker: http://localhost:8080/api/documentation
 ```
 
-Make sure the following `.env` values are set for Swagger to work correctly:
+Make sure the following `.env` values are set for Swagger to work correctly (Local):
 
 ```env
 L5_SWAGGER_CONST_HOST=http://localhost:8000
