@@ -1,61 +1,248 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Laravel Products API
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+A Laravel 12 application that provides a **Products Management API** with authentication, filtering + pagination, and Excel export functionality.  
+Includes authentication (login, logout) and a full PHPUnit test suite.
 
-## About Laravel
+---
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+## 📌 Table of Contents
+1. Requirements
+2. Setup Instructions
+3. Running the Application
+4. Authentication
+5. API Endpoints
+6. Seeder Accounts
+7. Testing & Development
+8. Assumptions & Design Choices
+9. Tech Stack
+10. Production Deployment
+11. Future Enhancements
+12. License
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+---
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+## Requirements
+- PHP 8.3+
+- Composer
+- MySQL 8+ (or SQLite for testing)
+- Git
 
-## Learning Laravel
+---
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+## Setup Instructions
 
-You may also try the [Laravel Bootcamp](https://bootcamp.laravel.com), where you will be guided through building a modern Laravel application from scratch.
+```bash
+# Clone repository
+git clone <your-repo-url>
+cd <your-project-folder>
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+# Install dependencies
+composer install
 
-## Laravel Sponsors
+# Copy environment file
+cp .env.example .env
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+# Generate application key
+php artisan key:generate
 
-### Premium Partners
+# Configure your .env for DB connection
+php artisan migrate --seed
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+# Link storage (if needed)
+php artisan storage:link
 
-## Contributing
+# (Optional) Build front-end assets
+npm install && npm run build
+```
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+---
 
-## Code of Conduct
+## Running the Application
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+```bash
+php artisan serve
+```
 
-## Security Vulnerabilities
+Default URL: **http://localhost:8000**
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+---
+
+## Authentication
+
+- **Login** (`POST /login`)
+  - Web request → redirects to `/admin`
+  - JSON request → returns **204 No Content**
+- **Logout** (`POST /logout`)
+  - Web request → redirects to `/login`
+  - JSON request → returns **204 No Content**
+
+---
+
+## API Endpoints
+
+Base path: `/api`
+
+| Method  | Path                        | Auth        | Role   | Description                                   |
+|--------:|-----------------------------|-------------|--------|-----------------------------------------------|
+|  GET    | `/products`                 | Sanctum     | Admin  | List products (with filters & pagination)     |
+|  GET    | `/products/export`          | Sanctum     | Admin  | Download Excel export                         |
+|  GET    | `/products/{product}`       | Sanctum     | Admin  | Show a single product                         |
+|  POST   | `/products`                 | Sanctum     | Admin  | Create product                                |
+|  PUT    | `/products/{product}`       | Sanctum     | Admin  | Update product                                |
+|  PATCH  | `/products/{product}`       | Sanctum     | Admin  | Partial update                                |
+|  DELETE | `/products/{product}`       | Sanctum     | Admin  | Delete product                                |
+|  POST   | `/products/bulk-delete`     | Sanctum     | Admin  | Bulk delete                                   |
+
+### Query Parameters for `/products`
+- `enabled` → `true|false|1|0`
+- `category_id` → integer
+- `per_page` → integer (default: 15)
+- `page` → integer (default: 1)
+
+### Export `/products/export`
+- Accepts same filters as `/products`
+- Returns an Excel file (`products.xlsx`)
+
+---
+
+## Email Verification
+
+| Method | Path                                      | Description                              |
+|--------|-------------------------------------------|------------------------------------------|
+| GET    | `/verify-email`                           | Verification notice page (204 for API)   |
+| GET    | `/verify-email/{id}/{hash}` (signed)      | Marks email as verified                  |
+| POST   | `/email/verification-notification`        | Resends verification email               |
+
+---
+
+## Seeder Accounts
+
+Two accounts are created by default:
+
+**Admin**
+```
+Email: admin@example.com
+Password: password
+```
+
+**User**
+```
+Email: user@example.com
+Password: password
+```
+
+---
+
+## Testing & Development
+
+### Run All Tests
+```bash
+php artisan test
+```
+
+### Run Only Product API Tests
+```bash
+php artisan test --filter=ProductApiTest
+```
+
+### Run a Single Test Method
+```bash
+php artisan test --filter=ProductApiTest::admin_can_list_products_with_filters_and_pagination
+```
+
+### Refresh the Database
+Re-run migrations from scratch with seeders:
+```bash
+php artisan migrate:fresh --seed
+```
+Without seeders:
+```bash
+php artisan migrate:fresh
+```
+
+### Get a Bearer Token for Swagger/Postman
+```bash
+php artisan tinker
+```
+```php
+$user = App\Models\User::where('email', 'admin@example.com')->first();
+$token = $user->createToken('API Token')->plainTextToken;
+$token;
+```
+Copy the token and use it in Swagger/Postman:
+```
+Authorization: Bearer <your-token-here>
+```
+
+### Useful Artisan Commands
+List all routes:
+```bash
+php artisan route:list
+```
+Clear cache (routes, config, views):
+```bash
+php artisan optimize:clear
+```
+
+---
+
+## Assumptions & Design Choices
+
+- **Role-based access**: Only admins manage products
+- **Route ordering**: `/products/export` is declared before `/products/{product}` with numeric constraint to avoid collisions
+- **Separated concerns**: API controllers and web controllers are separated for clarity
+- **Guards**: `auth:sanctum` for API, session for web
+- **Validation**: All requests validated (including query params)
+- **Exports**: Built with Maatwebsite/Excel and tested for correct filename and class
+- **Tests**: Written for all major flows, including failure cases
+
+---
+
+## Tech Stack
+
+- **Framework**: Laravel 12
+- **Language**: PHP 8.3
+- **Database**: MySQL 8 (or SQLite for testing)
+- **Auth**: Laravel Sanctum
+- **Exports**: Maatwebsite/Excel
+- **Testing**: PHPUnit + Laravel Test Helpers
+- **CI/CD**: GitHub Actions
+
+---
+
+## Production Deployment
+
+1. Configure `.env` with production settings:
+   ```env
+   APP_ENV=production
+   APP_DEBUG=false
+   APP_URL=https://yourdomain.com
+   ```
+2. Run:
+   ```bash
+   composer install --optimize-autoloader --no-dev
+   php artisan migrate --force
+   php artisan config:cache
+   php artisan route:cache
+   php artisan view:cache
+   ```
+3. Set up a queue worker if needed:
+   ```bash
+   php artisan queue:work
+   ```
+
+---
+
+## Future Enhancements
+
+- API documentation with Swagger/OpenAPI
+- Role & permission management via UI
+- Advanced product search & sorting
+- Soft delete & restore functionality
+- Response caching for product listing
+
+---
 
 ## License
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+This project is open-sourced under the [MIT license](LICENSE).
